@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 // import 'services/hive_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'models/task_model.dart';
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:timezone/data/latest.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,10 +10,14 @@ import 'screens/routine_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/setting_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // await initializeNotifications();
   // await HiveService.initHive();
+  await Hive.initFlutter();
+  Hive.registerAdapter(TaskAdapter());
+
+  await Hive.openBox<Task>('tasksBox'); // Open the box before using it
   runApp(const MorningRoutineApp());
 }
 

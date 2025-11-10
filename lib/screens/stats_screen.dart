@@ -100,8 +100,9 @@ class _StatsPageState extends State<StatsPage> {
               ),
               const SizedBox(height: 20),
 
-              // Calendar Section (unchanged)
+              // Calendar Section
               Container(
+                height: 400, // you can adjust height as needed
                 decoration: BoxDecoration(
                   color: isDarkMode ? Colors.grey.shade800 : Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -113,55 +114,60 @@ class _StatsPageState extends State<StatsPage> {
                     ),
                   ],
                 ),
-                child: TableCalendar(
-                  firstDay: DateTime.utc(2025, 9, 1),
-                  lastDay: DateTime.utc(2025, 12, 31),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  eventLoader: _getEventsForDay,
-                  calendarStyle: CalendarStyle(
-                    todayDecoration: BoxDecoration(
-                      color: isDarkMode ? Colors.orangeAccent : Colors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: isDarkMode ? Colors.deepPurpleAccent : Colors.deepPurple,
-                      shape: BoxShape.circle,
-                    ),
-                    markersMaxCount: 1,
-                    markerDecoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.transparent,
-                    ),
-                    defaultDecoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isDarkMode ? Colors.grey.shade700 : Colors.white,
-                    ),
-                  ),
-                  calendarBuilders: CalendarBuilders(
-                    markerBuilder: (context, date, events) {
-                      if (events.isNotEmpty) {
-                        return Container(
-                          width: 6,
-                          height: 6,
-                          margin: const EdgeInsets.only(top: 40),
-                          decoration: BoxDecoration(
-                            color: _getDayStatusColor(date),
-                            shape: BoxShape.circle,
-                          ),
-                        );
-                      }
-                      return null;
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: TableCalendar(
+                    firstDay: DateTime.utc(2025, 9, 1),
+                    lastDay: DateTime.utc(2025, 12, 31),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
                     },
+                    eventLoader: _getEventsForDay,
+                    calendarStyle: CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                        color: isDarkMode ? Colors.orangeAccent : Colors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: isDarkMode ? Colors.deepPurpleAccent : Colors.deepPurple,
+                        shape: BoxShape.circle,
+                      ),
+                      markersMaxCount: 1,
+                      markerDecoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.transparent,
+                      ),
+                      defaultDecoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDarkMode ? Colors.grey.shade700 : Colors.white,
+                      ),
+                    ),
+                    calendarBuilders: CalendarBuilders(
+                      markerBuilder: (context, date, events) {
+                        if (events.isNotEmpty) {
+                          return Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(top: 40),
+                            decoration: BoxDecoration(
+                              color: _getDayStatusColor(date),
+                              shape: BoxShape.circle,
+                            ),
+                          );
+                        }
+                        return null;
+                      },
+                    ),
                   ),
                 ),
               ),
+
+
               const SizedBox(height: 8),
 
               // Legend

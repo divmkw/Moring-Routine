@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'task_page.dart';
 
 class RoutineScreen extends StatefulWidget {
   const RoutineScreen({super.key});
@@ -55,7 +56,11 @@ class RoutineScreenState extends State<RoutineScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              // onPressed: () => Navigator.push(
+              //   context,
+              //   MaterialPageRoute(builder: (context) => const TaskPage()),
+              // ),
+               onPressed: () => Navigator.pop(context),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
@@ -153,6 +158,16 @@ class RoutineScreenState extends State<RoutineScreen> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TaskPage()),
+              );
+            },
+            child: const Text("Start Routine"),
           ),
         ],
       ),
