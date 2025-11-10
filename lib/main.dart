@@ -107,7 +107,7 @@ class _HomePageState extends State<HomePage> {
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        selectedItemColor: Colors.black,
+        selectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -127,26 +127,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-//****************************************************** Hive Service for Data Persistence *******************************************/
-
-// Example usage in a widget
-// Future<void> _saveActivity(String taskName, bool isCompleted) async {
-//   final activity = DailyActivity(
-//     date: DateTime.now(),
-//     taskName: taskName,
-//     isCompleted: isCompleted,
-//     timeSpent: '5 min',
-//   );
-//   await HiveService.saveDailyActivity(activity);
-// }
-
-// // Check completed activities
-// void _loadTodaysActivities() {
-//   final activities = HiveService.getActivitiesForDate(DateTime.now());
-//   for (var activity in activities) {
-//     print('${activity.taskName}: ${activity.isCompleted}');
-//   }
-// } 
+ 
 
 

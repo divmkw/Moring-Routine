@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'task_page.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../models/task_model.dart';
 
 class RoutineScreen extends StatefulWidget {
   const RoutineScreen({super.key});
@@ -16,12 +18,45 @@ class RoutineScreenState extends State<RoutineScreen> {
     {"title": "Meditate", "time": "10 min"},
   ];
 
-  // Function to add a new task
-  void _addTask(String title, String time) {
-    setState(() {
-      tasks.add({"title": title, "time": time});
-    });
+   late Box<Task> taskBox;
+  DateTime selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    taskBox = Hive.box<Task>('tasksBox');
   }
+
+  void _addTask(String title, int duration) {
+    final task = Task(
+      title: title,
+      durationMinutes: duration,
+      date: selectedDate,
+    );
+    taskBox.add(task);
+    setState(() {});
+  }
+
+  void _toggleComplete(Task task) {
+    task.isCompleted = !task.isCompleted;
+    task.save();
+    setState(() {});
+  }
+
+  List<Task> _tasksForDate(DateTime date) {
+    return taskBox.values.where((task) =>
+      task.date.year == date.year &&
+      task.date.month == date.month &&
+      task.date.day == date.day
+    ).toList();
+  }
+  
+  // Function to add a new task
+  // void _addTask(String title, String time) {
+  //   setState(() {
+  //     tasks.add({"title": title, "time": time});
+  //   });
+  // }
 
   // Function to show the Add Task dialog
   void _showAddTaskDialog() {
@@ -60,15 +95,15 @@ class RoutineScreenState extends State<RoutineScreen> {
               //   context,
               //   MaterialPageRoute(builder: (context) => const TaskPage()),
               // ),
-               onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
                 final String title = titleController.text.trim();
-                final String time = timeController.text.trim();
-                if (title.isNotEmpty && time.isNotEmpty) {
-                  _addTask(title, "$time min");
+                final int? time = int.tryParse(timeController.text.trim());
+                if (title.isNotEmpty && time != null) {
+                  _addTask(title, time);
                   Navigator.pop(context);
                 }
               },
@@ -82,6 +117,9 @@ class RoutineScreenState extends State<RoutineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // final tasks = _tasksForDate(selectedDate);
+
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(16),

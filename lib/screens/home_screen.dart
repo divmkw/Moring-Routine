@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../models/task_model.dart';
+
 // import 'package:intl/intl.dart';
 // import '../models/daily_activity.dart';
 // import '../services/hive_service.dart';
@@ -14,12 +17,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // List of tasks
-  final List<Map<String, String>> tasks = [
-    {"title": "Drink Water", "time": "1 min"},
-    {"title": "Stretch for 5 minutes", "time": "5 min"},
-    {"title": "Meditate", "time": "10 min"},
-  ];
+  // Hive tasks box
+  late Box<Task> taskBox;
+
+  // List of tasks initialized from Hive (title + time string)
+  List<Map<String, String>> tasks = [];
+
 
   //final streakKey = "streak";
   int currentStreak = 0;
@@ -31,89 +34,30 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize task completion status to false for all tasks
+    // Load today's tasks from Hive and initialize completion status
+    taskBox = Hive.box<Task>('tasksBox');
+    final now = DateTime.now();
+    final todayTasks = taskBox.values.where((t) =>
+      t.date.year == now.year &&
+      t.date.month == now.month &&
+      t.date.day == now.day
+    ).toList();
+
+    tasks = todayTasks.map((t) => {
+      "title": t.title,
+      "time": "${t.durationMinutes} min",
+    }).toList();
+
     taskCompletion = List<bool>.filled(tasks.length, false);
-    // _loadStreaks(); // Load streaks from SharedPreferences
-    // Schedule end-of-day logic
     _scheduleEndOfDay();
   }
 
   // Calculate progress based on completed tasks
   double _calculateProgress() {
-    final completedTasks = taskCompletion
-        .where((completed) => completed)
-        .length;
-        // await _updateStreaks();
+    if (tasks.isEmpty) return 0;
+    final completedTasks = taskCompletion.where((completed) => completed).length;
     return completedTasks / tasks.length;
   }
-
-  // Save streaks to SharedPreferences
-  // Future<void> _saveStreaks() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setInt('currentStreak', currentStreak);
-  //   await prefs.setInt('longestStreak', longestStreak);
-  // }
-
-  // // Load streaks from SharedPreferences
-  // Future<void> _loadStreaks() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   setState(() {
-  //     currentStreak = prefs.getInt('currentStreak') ?? 0;
-  //     longestStreak = prefs.getInt('longestStreak') ?? 0;
-  //   });
-  // }
-
-  // // Update streaks when daily tasks are completed
-  // Future<void> _updateStreaks() async {
-  //   if (_calculateProgress() == 1.0) {
-  //     currentStreak++;
-  //     if (currentStreak > longestStreak) {
-  //       longestStreak = currentStreak;
-  //     }
-  //     await _saveStreaks();
-  //     Fluttertoast.showToast(
-  //       msg: "Congratulations! You've completed today's tasks!",
-  //       toastLength: Toast.LENGTH_SHORT,
-  //       gravity: ToastGravity.BOTTOM,
-  //       backgroundColor: Colors.black54,
-  //       textColor: Colors.white,
-  //       fontSize: 16.0,
-  //     );
-  //   } else {
-  //     currentStreak = 0; // Reset streak if tasks are not completed
-  //     await _saveStreaks();
-  //   }
-  // }
-
-  // Save daily activity to Hive
-  // Future<void> _saveDailyActivity() async {
-  //   final now = DateTime.now();
-  //   final dailyActivities = tasks.asMap().entries.map((entry) {
-  //     final index = entry.key;
-  //     final task = entry.value;
-  //     return DailyActivity(
-  //       date: now,
-  //       taskName: task["title"]!,
-  //       isCompleted: taskCompletion[index],
-  //       timeSpent: task["time"]!,
-  //     );
-  //   }).toList();
-
-  //   for (var activity in dailyActivities) {
-  //     await HiveService.saveDailyActivity(activity);
-  //   }
-
-  //   Fluttertoast.showToast(
-  //     msg: "Daily activities saved for ${DateFormat('yyyy-MM-dd').format(now)}",
-  //     toastLength: Toast.LENGTH_SHORT, // or Toast.LENGTH_LONG
-  //     gravity: ToastGravity.BOTTOM, // position: TOP, CENTER, BOTTOM
-  //     backgroundColor: Colors.black54,
-  //     textColor: Colors.white,
-  //     fontSize: 16.0,
-  //   );
-
-  //   // print("Daily activities saved for ${DateFormat('yyyy-MM-dd').format(now)}");
-  // }
 
   // Schedule end-of-day logic
   void _scheduleEndOfDay() {
@@ -161,9 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           Card(
             color: const Color.fromARGB(255, 162, 91, 209),
-            child: const ListTile(
-              title: Text("Current Streak: 0 days in a row"),
-              subtitle: Text("Longest: 0 days"),
+            child: ListTile(
+              title: Text("Current Streak: $currentStreak days in a row"),
+              subtitle: Text("Longest: $longestStreak days"),
             ),
           ),
           const SizedBox(height: 16),
