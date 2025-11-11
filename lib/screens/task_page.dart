@@ -46,7 +46,7 @@ class _TaskPageState extends State<TaskPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = _tasksForDate(selectedDate);
+    // final tasks = _tasksForDate(selectedDate);
 
     return Scaffold(
       appBar: AppBar(
@@ -63,8 +63,8 @@ class _TaskPageState extends State<TaskPage> {
                 final picked = await showDatePicker(
                   context: context,
                   initialDate: selectedDate,
-                  firstDate: DateTime(2024),
-                  lastDate: DateTime(2026),
+                  firstDate: DateTime(2025),
+                  lastDate: DateTime(2027),
                 );
                 if (picked != null) {
                   setState(() => selectedDate = picked);
