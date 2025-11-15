@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'dart:io';
@@ -163,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isDarkMode = settingsBox.get('isDarkMode', defaultValue: false);
       _dailyReminder = settingsBox.get('dailyReminder', defaultValue: false);
       _persistTasks = settingsBox.get('persistTasks', defaultValue: true);
-      _accentColor = Color(settingsBox.get('accentColor', defaultValue: Colors.lightGreen.value));
+      _accentColor = Color(settingsBox.get('accentColor', defaultValue: Colors.lightGreen));
       final hour = settingsBox.get('reminderHour', defaultValue: 7);
       final minute = settingsBox.get('reminderMinute', defaultValue: 0);
       _selectedTime = TimeOfDay(hour: hour, minute: minute);

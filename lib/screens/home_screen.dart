@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 12),
           Card(
-            color: accentColor.withOpacity(0.1),
+            color: accentColor.withValues(alpha: 0.1),
             child: const Padding(
               padding: EdgeInsets.all(12),
               child: Text(

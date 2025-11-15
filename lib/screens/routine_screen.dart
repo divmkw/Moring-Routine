@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/task_model.dart';
-import 'task_page.dart';
 
 class RoutineScreen extends StatefulWidget {
   const RoutineScreen({super.key});
@@ -155,8 +154,8 @@ class RoutineScreenState extends State<RoutineScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            accentColor.withOpacity(0.9),
-            accentColor.withOpacity(0.6),
+            accentColor.withValues(alpha: 0.9),
+            accentColor.withValues(alpha: 0.6),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -266,7 +265,7 @@ class RoutineScreenState extends State<RoutineScreen> {
               ),
               const SizedBox(height: 18),
               Card(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest, //surfaceVariant
                 child: const Padding(
                   padding: EdgeInsets.all(12),
                   child: Column(
@@ -282,14 +281,6 @@ class RoutineScreenState extends State<RoutineScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // ElevatedButton(
-              //   style: ElevatedButton.styleFrom(
-              //       backgroundColor: accentColor,
-              //       foregroundColor: Colors.white),
-              //   onPressed: () => Navigator.push(
-              //       context, MaterialPageRoute(builder: (_) => const TaskPage())),
-              //   child: const Text("Start Routine"),
-              // ),
             ],
           );
         },

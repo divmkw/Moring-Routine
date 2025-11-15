@@ -152,7 +152,7 @@ class _StatsPageState extends State<StatsPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [widget.accentColor, widget.accentColor.withOpacity(0.7)],
+          colors: [widget.accentColor, widget.accentColor.withValues(alpha: 0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -277,7 +277,8 @@ class _StatsPageState extends State<StatsPage> {
         eventLoader: _getEventsForDay,
         calendarStyle: CalendarStyle(
           todayDecoration: BoxDecoration(
-              color: widget.accentColor.withOpacity(0.5),
+              color: widget.accentColor.withValues(alpha: 0.5),
+              // color: widget.accentColor.withAlpha(0.5),
               shape: BoxShape.circle),
           selectedDecoration:
               BoxDecoration(color: widget.accentColor, shape: BoxShape.circle),
@@ -374,7 +375,7 @@ class _StatsPageState extends State<StatsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: unlocked
-            ? widget.accentColor.withOpacity(0.15)
+            ? widget.accentColor.withValues(alpha: 0.15)
             : (isDark ? Colors.grey.shade900 : Colors.white),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
@@ -417,7 +418,7 @@ class _StatsPageState extends State<StatsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: widget.accentColor.withOpacity(isDark ? 0.2 : 0.1),
+        color: widget.accentColor.withValues(alpha: isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
