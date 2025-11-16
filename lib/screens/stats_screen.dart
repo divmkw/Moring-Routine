@@ -14,7 +14,7 @@ class StatsPage extends StatefulWidget {
   State<StatsPage> createState() => _StatsPageState();
 }
 
-class _StatsPageState extends State<StatsPage> {
+class _StatsPageState extends State<StatsPage> with TickerProviderStateMixin {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
@@ -29,29 +29,39 @@ class _StatsPageState extends State<StatsPage> {
   bool perfectMonth = false;
   bool consistencyKing = false;
 
+  /// NEW FEATURES
+  bool _calendarExpanded = true; // 🔥 Expand / Collapse
+  CalendarFormat _calendarFormat = CalendarFormat.month; // 🔥 Week / Month toggle
+
+  double _fadeOpacity = 0; // 🔥 Fade animations
+
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
     _loadStatsData();
+
+    // Start fade animation
+    Future.delayed(const Duration(milliseconds: 150), () {
+      setState(() => _fadeOpacity = 1);
+    });
   }
+
+  // ---------------- LOAD DATA -------------------
 
   Future<void> _loadStatsData() async {
     final taskBox = Hive.box<Task>('tasksBox');
     final prefs = await SharedPreferences.getInstance();
 
-    // Load streak data
     currentStreak = prefs.getInt('currentStreak') ?? 0;
     longestStreak = prefs.getInt('longestStreak') ?? 0;
 
-    // Group tasks by date
     Map<DateTime, List<Task>> grouped = {};
     for (var t in taskBox.values) {
       final d = DateTime(t.date.year, t.date.month, t.date.day);
       grouped.putIfAbsent(d, () => []).add(t);
     }
 
-    // Build events + stats
     int completedDays = 0;
     int totalDays = grouped.keys.length;
     int totalTasks = 0;
@@ -62,6 +72,7 @@ class _StatsPageState extends State<StatsPage> {
     grouped.forEach((date, tasks) {
       bool allCompleted = tasks.every((t) => t.isCompleted);
       bool anyCompleted = tasks.any((t) => t.isCompleted);
+
       totalTasks += tasks.length;
       totalCompleted += tasks.where((t) => t.isCompleted).length;
 
@@ -78,7 +89,6 @@ class _StatsPageState extends State<StatsPage> {
     double compRate =
         totalTasks > 0 ? totalCompleted / totalTasks : 0.0;
 
-    // Determine achievements
     firstDay = totalDays > 0;
     weekWarrior = longestStreak >= 7;
     perfectMonth = longestStreak >= 30;
@@ -103,6 +113,8 @@ class _StatsPageState extends State<StatsPage> {
     return widget.accentColor;
   }
 
+  // ---------------- BUILD UI -------------------
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -110,41 +122,103 @@ class _StatsPageState extends State<StatsPage> {
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.grey.shade100,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadStatsData,
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: _buildHeader()),
-              SliverToBoxAdapter(child: const SizedBox(height: 16)),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      _buildStatSummary(isDark),
-                      const SizedBox(height: 24),
-                      _buildCalendar(isDark),
-                      const SizedBox(height: 16),
-                      _buildLegend(),
-                      const SizedBox(height: 16),
-                      if (_selectedDay != null)
-                        _buildSelectedDayInfo(
-                            _selectedDay!, _getEventsForDay(_selectedDay!)),
-                      const SizedBox(height: 24),
-                      _buildAchievements(isDark),
-                      const SizedBox(height: 24),
-                      _buildMotivation(isDark),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 400),
+          opacity: _fadeOpacity,
+          child: RefreshIndicator(
+            onRefresh: _loadStatsData,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isTablet = constraints.maxWidth > 650;
+
+                return CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(child: _buildHeader()),
+                    SliverToBoxAdapter(child: const SizedBox(height: 16)),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isTablet ? 40 : 16),
+                        child: Column(
+                          children: [
+                            _buildStatSummary(isDark),
+                            const SizedBox(height: 24),
+
+                            /// 🔥 NEW: Expand / Collapse + Format Toggle
+                            _buildCalendarControls(),
+
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: _calendarExpanded
+                                  ? _buildCalendar(isDark)
+                                  : const SizedBox.shrink(),
+                            ),
+
+                            const SizedBox(height: 16),
+                            _buildLegend(),
+                            const SizedBox(height: 16),
+                            if (_selectedDay != null)
+                              _buildSelectedDayInfo(
+                                  _selectedDay!, _getEventsForDay(_selectedDay!)),
+                            const SizedBox(height: 24),
+                            _buildAchievements(isDark),
+                            const SizedBox(height: 24),
+                            _buildMotivation(isDark),
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
+
+  // ---------------- Calendar Controls (NEW) -------------------
+
+  Widget _buildCalendarControls() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Expand / Collapse
+        TextButton.icon(
+          onPressed: () {
+            setState(() => _calendarExpanded = !_calendarExpanded);
+          },
+          icon: Icon(
+            _calendarExpanded ? Icons.expand_less : Icons.expand_more,
+            color: widget.accentColor,
+          ),
+          label: Text(
+            _calendarExpanded ? "Collapse Calendar" : "Expand Calendar",
+            style: TextStyle(color: widget.accentColor),
+          ),
+        ),
+
+        // Week / Month Switch
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _calendarFormat = (_calendarFormat == CalendarFormat.month)
+                  ? CalendarFormat.week
+                  : CalendarFormat.month;
+            });
+          },
+          child: Text(
+            _calendarFormat == CalendarFormat.month ? "Weekly View" : "Monthly View",
+            style: TextStyle(color: widget.accentColor),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------- Existing Builders (Untouched) -------------------
 
   Widget _buildHeader() {
     return Container(
@@ -152,7 +226,10 @@ class _StatsPageState extends State<StatsPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [widget.accentColor, widget.accentColor.withValues(alpha: 0.7)],
+          colors: [
+            widget.accentColor,
+            widget.accentColor.withValues(alpha: 0.7)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -257,65 +334,65 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
+  // 🔥 UPDATED TO SUPPORT WEEK/MONTH FORMAT
   Widget _buildCalendar(bool isDark) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: 100, // enough height for calendar
+        return Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey.shade900 : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade900 : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+          child: TableCalendar(
+            firstDay: DateTime.utc(2025, 1, 1),
+            lastDay: DateTime.utc(2026, 12, 31),
+            focusedDay: _focusedDay,
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            calendarFormat: _calendarFormat,
+            onFormatChanged: (format) {
+              setState(() => _calendarFormat = format);
+            },
+            onDaySelected: (selected, focused) {
+              setState(() {
+                _selectedDay = selected;
+                _focusedDay = focused;
+              });
+            },
+            eventLoader: _getEventsForDay,
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(
+                color: widget.accentColor.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: BoxDecoration(
+                color: widget.accentColor,
+                shape: BoxShape.circle,
+              ),
+              markersMaxCount: 1,
             ),
-            child: TableCalendar(
-              firstDay: DateTime.utc(2025, 1, 1),
-              lastDay: DateTime.utc(2026, 12, 31),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selected, focused) {
-                setState(() {
-                  _selectedDay = selected;
-                  _focusedDay = focused;
-                });
+            calendarBuilders: CalendarBuilders(
+              markerBuilder: (context, date, events) {
+                if (events.isNotEmpty) {
+                  return Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(top: 40),
+                    decoration: BoxDecoration(
+                      color: _getDayStatusColor(date),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                }
+                return null;
               },
-              eventLoader: _getEventsForDay,
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: widget.accentColor.withValues(alpha:0.5),
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: widget.accentColor,
-                  shape: BoxShape.circle,
-                ),
-                markersMaxCount: 1,
-              ),
-              calendarBuilders: CalendarBuilders(
-                markerBuilder: (context, date, events) {
-                  if (events.isNotEmpty) {
-                    return Container(
-                      width: 6,
-                      height: 6,
-                      margin: const EdgeInsets.only(top: 40),
-                      decoration: BoxDecoration(
-                        color: _getDayStatusColor(date),
-                        shape: BoxShape.circle,
-                      ),
-                    );
-                  }
-                  return null;
-                },
-              ),
             ),
           ),
         );
       },
     );
   }
-
 
   Widget _buildLegend() {
     return Row(
@@ -437,14 +514,14 @@ class _StatsPageState extends State<StatsPage> {
       child: Text(
         "💡 Every journey starts with a single step. Stay consistent — small habits create big change!",
         style: TextStyle(
-            color: isDark ? Colors.grey.shade300 : Colors.black87,
-            fontSize: 14),
+            color: isDark ? Colors.grey.shade300 : Colors.black87, fontSize: 14),
       ),
     );
   }
 }
 
-// ----- Small Components -----
+// ------------------- Small Components ---------------------
+
 class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
@@ -465,7 +542,8 @@ class _LegendDot extends StatelessWidget {
   }
 }
 
-// ----- Circular Progress Painter -----
+// ------------------- Circular Progress Painter ---------------------
+
 class _CircularProgressPainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -487,8 +565,10 @@ class _CircularProgressPainter extends CustomPainter {
 
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
+
     canvas.drawCircle(center, radius, bgPaint);
     final sweep = 2 * math.pi * progress;
+
     canvas.drawArc(Rect.fromCircle(center: center, radius: radius),
         -math.pi / 2, sweep, false, fgPaint);
   }

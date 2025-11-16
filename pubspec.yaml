@@ -14,6 +14,8 @@ dependencies:
   fluttertoast: ^8.2.4 # For toasts
   intl: ^0.20.2 # For date formatting
 
+  flutter_timezone: ^5.0.1
+  # flutter_native_timezone: ^2.0.0 # For notifications
   flutter_local_notifications: ^17.0.0 # For notifications
   timezone: ^0.9.2 # For notifications
   shared_preferences: ^2.3.2 # For notifications
