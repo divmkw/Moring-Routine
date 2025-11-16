@@ -258,51 +258,64 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildCalendar(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-      ),
-      child: TableCalendar(
-        firstDay: DateTime.utc(2025, 1, 1),
-        lastDay: DateTime.utc(2026, 12, 31),
-        focusedDay: _focusedDay,
-        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-        onDaySelected: (selected, focused) =>
-            setState(() {
-              _selectedDay = selected;
-              _focusedDay = focused;
-            }),
-        eventLoader: _getEventsForDay,
-        calendarStyle: CalendarStyle(
-          todayDecoration: BoxDecoration(
-              color: widget.accentColor.withValues(alpha: 0.5),
-              // color: widget.accentColor.withAlpha(0.5),
-              shape: BoxShape.circle),
-          selectedDecoration:
-              BoxDecoration(color: widget.accentColor, shape: BoxShape.circle),
-          markersMaxCount: 1,
-        ),
-        calendarBuilders: CalendarBuilders(
-          markerBuilder: (context, date, events) {
-            if (events.isNotEmpty) {
-              return Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.only(top: 40),
-                decoration: BoxDecoration(
-                  color: _getDayStatusColor(date),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: 100, // enough height for calendar
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey.shade900 : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            ),
+            child: TableCalendar(
+              firstDay: DateTime.utc(2025, 1, 1),
+              lastDay: DateTime.utc(2026, 12, 31),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selected, focused) {
+                setState(() {
+                  _selectedDay = selected;
+                  _focusedDay = focused;
+                });
+              },
+              eventLoader: _getEventsForDay,
+              calendarStyle: CalendarStyle(
+                todayDecoration: BoxDecoration(
+                  color: widget.accentColor.withValues(alpha:0.5),
                   shape: BoxShape.circle,
                 ),
-              );
-            }
-            return null;
-          },
-        ),
-      ),
+                selectedDecoration: BoxDecoration(
+                  color: widget.accentColor,
+                  shape: BoxShape.circle,
+                ),
+                markersMaxCount: 1,
+              ),
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, date, events) {
+                  if (events.isNotEmpty) {
+                    return Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(top: 40),
+                      decoration: BoxDecoration(
+                        color: _getDayStatusColor(date),
+                        shape: BoxShape.circle,
+                      ),
+                    );
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
+
 
   Widget _buildLegend() {
     return Row(

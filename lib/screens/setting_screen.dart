@@ -7,8 +7,13 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// Import notification and timezone packages
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+// import 'package:flutter_native_timezone_updated/flutter_native_timezone.dart';
+
 import '../models/task_model.dart';
-// import 'package:timezone/timezone.dart' as tz;
 
 class SettingsScreen extends StatefulWidget {
   final Function(bool isDarkMode, Color accentColor) onThemeChanged;
@@ -26,33 +31,223 @@ class _SettingsScreenState extends State<SettingsScreen> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 7, minute: 0);
   Color _accentColor = Colors.lightGreen;
 
+  // Notification plugin instance
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    // Initialize notifications first
+    _initNotifications().then((_) {
+      // Then load settings
+      _loadSettings();
+      // Request permissions (will only prompt on first run)
+      _requestPermissions();
+    });
   }
+
+  // -------------------------------------------------------------------
+  // 🔔 Notification Logic
+  // -------------------------------------------------------------------
+
+  Future<void> _initNotifications() async {
+    // Initialize timezone database
+    tz.initializeTimeZones();
+
+    // Automatically assign device local timezone
+    final String localName = DateTime.now().timeZoneName;
+    try {
+      tz.setLocalLocation(tz.getLocation(localName));
+    } catch (_) {
+      // If timezoneName is like "IST" (not in tz database), fallback to offset-based zone.
+      final now = DateTime.now();
+      final offset = now.timeZoneOffset;
+      tz.setLocalLocation(
+        tz.getLocation(
+          offset.isNegative
+              ? 'Etc/GMT+${offset.inHours.abs()}'
+              : 'Etc/GMT-${offset.inHours.abs()}',
+        ),
+      );
+    }
+
+    // ANDROID initialization
+    const AndroidInitializationSettings androidInitSettings =
+        AndroidInitializationSettings('ic_launcher');
+
+    // iOS initialization
+    const DarwinInitializationSettings iosInitSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    const InitializationSettings settings = InitializationSettings(
+      android: androidInitSettings,
+      iOS: iosInitSettings,
+    );
+
+    await _flutterLocalNotificationsPlugin.initialize(settings);
+  }
+
+  Future<void> _showTestNotification() async { //for testing
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'daily_reminder_channel_id',
+      'Daily Reminders',
+      channelDescription: 'Test notification channel',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails details =
+        NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+    await _flutterLocalNotificationsPlugin.show(
+      999, // test notification id
+      '🔔 Test Notification',
+      'Your notification system is working!',
+      details,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("📨 Test notification sent!")),
+    );
+  }
+
+
+  Future<void> _requestPermissions() async {
+    // Request iOS permissions
+    await _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
+    // Request Android 13+ permissions
+    await _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission(); // <-- This is the corrected line
+  }
+
+  /// Calculates the next instance of the selected time.
+  tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+        tz.local, now.year, now.month, now.day, time.hour, time.minute);
+    
+    // If the scheduled time is in the past, schedule it for the next day
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+    return scheduledDate;
+  }
+
+  Future<void> _scheduleDailyReminder(TimeOfDay time) async {
+    try {
+      await _flutterLocalNotificationsPlugin.zonedSchedule(
+        0, // Notification ID
+        'Your Morning Routine Awaits!',
+        'Time to start your day strong. 💪',
+        _nextInstanceOfTime(time),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'daily_reminder_channel_id',
+            'Daily Reminders',
+            channelDescription: 'Channel for daily morning routine reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'default.wav',
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        // This is crucial for daily repeats
+        matchDateTimeComponents: DateTimeComponents.time,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('✅ Reminder set for ${_selectedTime.format(context)} daily.')),
+      );
+    } catch (e) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Failed to set reminder: $e')),
+      );
+    }
+  }
+
+  Future<void> _cancelDailyReminder({bool showSnackbar = true}) async {
+    await _flutterLocalNotificationsPlugin.cancel(0); // Cancel by ID
+    
+    // Check if the confirmation snackbar should be displayed
+    if (showSnackbar) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Reminder canceled.')),
+      );
+    }
+  }
+
+  // Future<void> _cancelDailyReminder() async {
+  //   await _flutterLocalNotificationsPlugin.cancel(0); // Cancel by ID
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text('❌ Reminder canceled.')),
+  //   );
+  // }
+
+  // -------------------------------------------------------------------
+  // 💾 Data Management Logic (FIXED)
+  // -------------------------------------------------------------------
 
   Future<void> _exportBackup(BuildContext context) async {
     try {
       final tasksBox = Hive.box<Task>('tasksBox');
       final prefs = await SharedPreferences.getInstance();
+      // **FIX: Read from settingsBox, not prefs**
+      final settingsBox = Hive.box('settings'); 
 
       // Collect tasks
-      final tasks = tasksBox.values.map((t) => {
-            'title': t.title,
-            'durationMinutes': t.durationMinutes,
-            'date': t.date.toIso8601String(),
-            'isCompleted': t.isCompleted,
-          }).toList();
+      final tasks = tasksBox.values
+          .map((t) => {
+                'title': t.title,
+                'durationMinutes': t.durationMinutes,
+                'date': t.date.toIso8601String(),
+                'isCompleted': t.isCompleted,
+              })
+          .toList();
 
       // Collect settings
       final settings = {
+        // Streak data from SharedPreferences
         'currentStreak': prefs.getInt('currentStreak') ?? 0,
         'longestStreak': prefs.getInt('longestStreak') ?? 0,
         'lastCompletionDate': prefs.getString('lastCompletionDate'),
-        'accentColor': prefs.getInt('accentColor'),
-        'autoCarryUnfinished': prefs.getBool('autoCarryUnfinished') ?? true,
-        'isDarkMode': prefs.getBool('isDarkMode') ?? false,
+
+        // App settings from Hive 'settings' box
+        'accentColor': settingsBox.get('accentColor'),
+        'persistTasks': settingsBox.get('persistTasks'),
+        'isDarkMode': settingsBox.get('isDarkMode'),
+        'dailyReminder': settingsBox.get('dailyReminder'),
+        'reminderHour': settingsBox.get('reminderHour'),
+        'reminderMinute': settingsBox.get('reminderMinute'),
       };
 
       final backup = {
@@ -60,8 +255,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'settings': settings,
       };
 
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/morning_routine_backup.json');
+      // **FIX: Changed default path to be more robust**
+      final dir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
+      final String fileName = 'morning_routine_backup_${DateTime.now().toIso8601String().split('T').first}.json';
+      final file = File('${dir.path}/$fileName');
       await file.writeAsString(jsonEncode(backup));
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -88,10 +285,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final tasksBox = Hive.box<Task>('tasksBox');
       final prefs = await SharedPreferences.getInstance();
+      // **FIX: Get settingsBox**
+      final settingsBox = Hive.box('settings');
 
       // Clear existing
       await tasksBox.clear();
-
+      // **FIX: Clear settingsBox too**
+      await settingsBox.clear(); 
+      // Note: We don't clear all prefs, just the ones we're restoring
+      
       // Restore tasks
       for (var item in data['tasks']) {
         final task = Task(
@@ -105,19 +307,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Restore settings
       final s = data['settings'];
+      
+      // Restore streak to SharedPreferences
       await prefs.setInt('currentStreak', s['currentStreak'] ?? 0);
       await prefs.setInt('longestStreak', s['longestStreak'] ?? 0);
       if (s['lastCompletionDate'] != null) {
         await prefs.setString('lastCompletionDate', s['lastCompletionDate']);
       }
+      
+      // **FIX: Restore app settings to Hive 'settings' box**
       if (s['accentColor'] != null) {
-        await prefs.setInt('accentColor', s['accentColor']);
+        await settingsBox.put('accentColor', s['accentColor']);
       }
-      await prefs.setBool('autoCarryUnfinished', s['autoCarryUnfinished'] ?? true);
-      await prefs.setBool('isDarkMode', s['isDarkMode'] ?? false);
+      await settingsBox.put('persistTasks', s['persistTasks'] ?? true);
+      await settingsBox.put('isDarkMode', s['isDarkMode'] ?? false);
+      await settingsBox.put('dailyReminder', s['dailyReminder'] ?? false);
+      await settingsBox.put('reminderHour', s['reminderHour'] ?? 7);
+      await settingsBox.put('reminderMinute', s['reminderMinute'] ?? 0);
+
+
+      // **FIX: Reload settings into UI and update theme**
+      await _loadSettings();
+      widget.onThemeChanged(_isDarkMode, _accentColor);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Backup imported successfully!')),
+        const SnackBar(content: Text('✅ Backup imported successfully! Refresh app.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -145,9 +359,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final tasksBox = Hive.box<Task>('tasksBox');
       final prefs = await SharedPreferences.getInstance();
+      // **FIX: Get settingsBox**
+      final settingsBox = Hive.box('settings');
 
       await tasksBox.clear();
       await prefs.clear();
+      // **FIX: Clear settingsBox**
+      await settingsBox.clear();
+
+      // **FIX: Cancel any active reminders**
+      await _cancelDailyReminder();
+
+      // **FIX: Reload settings to reset UI to defaults**
+      await _loadSettings();
+      widget.onThemeChanged(_isDarkMode, _accentColor);
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ All data reset successfully.')),
@@ -159,13 +385,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // -------------------------------------------------------------------
+  // ⚙️ Settings Load/Save (FIXED)
+  // -------------------------------------------------------------------
+
   Future<void> _loadSettings() async {
     settingsBox = await Hive.openBox('settings');
     setState(() {
       _isDarkMode = settingsBox.get('isDarkMode', defaultValue: false);
       _dailyReminder = settingsBox.get('dailyReminder', defaultValue: false);
       _persistTasks = settingsBox.get('persistTasks', defaultValue: true);
-      _accentColor = Color(settingsBox.get('accentColor', defaultValue: Colors.lightGreen));
+      // **FIX: Load color .value (int) and provide a .value default**
+      _accentColor = Color(settingsBox.get('accentColor', defaultValue: Colors.lightGreen.value));
       final hour = settingsBox.get('reminderHour', defaultValue: 7);
       final minute = settingsBox.get('reminderMinute', defaultValue: 0);
       _selectedTime = TimeOfDay(hour: hour, minute: minute);
@@ -178,7 +409,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await settingsBox.put('persistTasks', _persistTasks);
     await settingsBox.put('reminderHour', _selectedTime.hour);
     await settingsBox.put('reminderMinute', _selectedTime.minute);
-    await settingsBox.put('accentColor', _accentColor.toARGB32());
+    // **FIX: Save color .value (int) instead of the Color object**
+    await settingsBox.put('accentColor', _accentColor.value); 
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -199,6 +431,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _selectedTime = picked;
       });
       await _saveSettings();
+
+      // **UPDATE: If reminder is on, update the schedule**
+      if (_dailyReminder) {
+        // Pass false so it doesn't show the "Canceled" snackbar
+        await _cancelDailyReminder(showSnackbar: false); 
+        await _scheduleDailyReminder(_selectedTime);
+      }
     }
   }
 
@@ -247,6 +486,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _saveSettings();
   }
 
+  // -------------------------------------------------------------------
+  // 📱 Build Method (Updated Reminder Switch)
+  // -------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -256,8 +499,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // 🌅 Header Card
           Container(
             decoration: BoxDecoration(
+              // **FIX: Use .withAlpha(204) instead of .withValues()**
               gradient: LinearGradient(
-                colors: [_accentColor.withValues(alpha: 0.8), Colors.orangeAccent],
+                colors: [_accentColor.withAlpha(204), Colors.orangeAccent],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -286,12 +530,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             title: const Text("Daily Reminder"),
             value: _dailyReminder,
-            onChanged: (val) {
+            // **UPDATE: Handle scheduling/canceling notifications**
+            onChanged: (val) async {
               setState(() => _dailyReminder = val);
-              _saveSettings();
+              await _saveSettings(); // Save the setting
+              if (val) {
+                // If turned ON, schedule the notification
+                await _scheduleDailyReminder(_selectedTime);
+              } else {
+                // If turned OFF, cancel the notification
+                await _cancelDailyReminder();
+              }
             },
           ),
           const SizedBox(height: 8),
+          // for testing
+          ElevatedButton.icon(
+            onPressed: _showTestNotification,
+            icon: const Icon(Icons.notifications_active),
+            label: const Text("Send Test Notification"),
+          ),
+
 
           // 🎨 Appearance
           _buildSectionHeader("Appearance", Icons.palette),
@@ -300,7 +559,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: !_isDarkMode ? _accentColor.withValues(alpha: 0.3) : null,
+                    // **FIX: Use .withAlpha(77) for 30% opacity**
+                    backgroundColor: !_isDarkMode ? _accentColor.withAlpha(77) : null,
                   ),
                   onPressed: () => _toggleTheme(false),
                   icon: const Icon(Icons.light_mode),
@@ -311,7 +571,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: _isDarkMode ? _accentColor.withValues(alpha: 0.3) : null,
+                    backgroundColor: _isDarkMode ? _accentColor.withAlpha(77) : null,
                   ),
                   onPressed: () => _toggleTheme(true),
                   icon: const Icon(Icons.dark_mode),

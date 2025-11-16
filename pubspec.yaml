@@ -1,6 +1,6 @@
 name: moring_routine
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: none
 version: 0.1.0
 
 environment:
@@ -9,18 +9,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_riverpod: ^3.0.0
-  table_calendar: ^3.0.9
-  fluttertoast: ^8.2.4
-  intl: ^0.20.2
+  flutter_riverpod: ^3.0.0 # For state management
+  table_calendar: ^3.0.9 # For calendar
+  fluttertoast: ^8.2.4 # For toasts
+  intl: ^0.20.2 # For date formatting
 
-  # flutter_local_notifications: ^17.0.0
-  timezone: ^0.9.2
-  shared_preferences: ^2.3.2
-  permission_handler: ^12.0.1
+  flutter_local_notifications: ^17.0.0 # For notifications
+  timezone: ^0.9.2 # For notifications
+  shared_preferences: ^2.3.2 # For notifications
+  permission_handler: ^12.0.1 # For notifications
 
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
+  hive: ^2.2.3 # For hive
+  hive_flutter: ^1.1.0 # For hive
   path_provider: ^2.1.1 # For hive
   file_picker: ^8.1.2 # For backup/restore
 
@@ -30,6 +30,14 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.6
+  flutter_launcher_icons: ^0.13.1 # For generating app icons
+
+flutter_launcher_icons:
+  android: true
+  ios: false # Set to true if you were also targeting iOS
+  image_path: "assets/icon/logo.png" # YOUR NEW ICON PATH
+  # min_sdk_android: 21 # Minimum Android SDK version
+
 
 flutter:
   uses-material-design: true

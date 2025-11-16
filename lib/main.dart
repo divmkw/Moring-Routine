@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/task_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// Import notification and timezone packages
+import 'package:timezone/data/latest.dart' as tz;
 
 import 'screens/home_screen.dart';
 import 'screens/routine_screen.dart';
@@ -15,7 +17,7 @@ void main() async {
 
   await Hive.openBox<Task>('tasksBox');
   await Hive.openBox('settings');
-
+  tz.initializeTimeZones();
   // Auto carry forward unfinished tasks
   await carryForwardUnfinishedTasks();
 
