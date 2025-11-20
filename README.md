@@ -23,8 +23,8 @@ Morning Routine Master is a mobile application designed to help you build and ma
 - Cross-platform (iOS & Android) [adjust if needed]
 
 ## Screenshots  
-*Insert screenshots here (homepage, task list, streak view, settings)*  
-![Home Page](401ff325-0cf7-439a-bd78-f97b84a80b62.jpg)![Routine Page](a9fab92c-2bc5-49d2-adc2-6e9e028bf13e.jpg)
+![Home Page](401ff325-0cf7-439a-bd78-f97b84a80b62.jpg)
+![Routine Page](a9fab92c-2bc5-49d2-adc2-6e9e028bf13e.jpg)
 ![Stat Page](e9a3d198-b9c3-4ce1-9604-b5ff755b63ac.jpg)
 ![Stat Page](57ec32e0-c42c-4331-9ec9-f863d3799cc7.jpg)
 ![Setting Page](9195ef85-514a-436f-b00d-3cd2eb317a90.jpg)
@@ -51,3 +51,5 @@ Morning Routine Master is a mobile application designed to help you build and ma
      ```bash
      flutter run
  
+## Contact
+Email: makwanadivyesh223@gmail.com
