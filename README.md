@@ -7,11 +7,7 @@ Help users build consistent morning habits by tracking routines, streaks, and pr
 - [Screenshots](#screenshots)  
 - [Getting Started](#getting-started)  
   - [Prerequisites](#prerequisites)  
-  - [Installation](#installation)  
-- [Usage](#usage)  
-- [Architecture & Technology Stack](#architecture-technology-stack)  
-- [Contributing](#contributing)  
-- [License](#license)  
+  - [Installation](#installation)    
 - [Contact](#contact)  
 
 ## About  
@@ -29,6 +25,7 @@ Morning Routine Master is a mobile application designed to help you build and ma
 ## Screenshots  
 *Insert screenshots here (homepage, task list, streak view, settings)*  
 
+
 ## Getting Started  
 
 ### Prerequisites  
@@ -39,8 +36,8 @@ Morning Routine Master is a mobile application designed to help you build and ma
 ### Installation  
 1. Clone the repository:  
      ```bash  
-     git clone https://github.com/divmkw/morning_routine_master.git  
-     cd morning_routine_master  
+     git clone https://github.com/divmkw/morning_routine.git  
+     cd morning_routine  
 
 2. Install dependencies:
      ```bash
